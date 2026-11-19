@@ -2,35 +2,57 @@ name: Amazon Price Tracker
 
 on:
   schedule:
-    - cron: "*/20 * * * *" # Runs automatically every 20 minutes
-  workflow_dispatch: # Lets you run it manually anytime
+    - cron: "*/20 * * * *"
+  workflow_dispatch:
 
 permissions:
-  contents: write # Allows saving history.json to prevent duplicate alerts
+  contents: write
+
+concurrency:
+  group: amazon-price-tracker
+  cancel-in-progress: false
 
 jobs:
   check-prices:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
+      - name: Check out repository
+        uses: actions/checkout@v4
         with:
-          python-version: "3.11"
+          fetch-depth: 0
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
 
-      - name: Run tracker
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Chromium
+        run: python -m playwright install --with-deps chromium
+
+      - name: Check Amazon prices
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python tracker.py
 
-      - name: Save alert history
+      - name: Commit price alert history
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add history.json || true
-          git commit -m "Update alert history" || exit 0
-          git push
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add history.json
+
+          if ! git diff --cached --quiet; then
+            git diff --cached --stat
+            git commit -m "Update Amazon price alert history"
+            git push
+          else
+            echo "No history changes"
+          fi
