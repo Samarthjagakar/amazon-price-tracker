@@ -144,7 +144,7 @@ def extract_search_card(card):
     if re.search(r"\bsponsored\b", whole_card_text, re.I):
         return None
 
-    title_element = card.locator("h2")
+    title_element = card.locator("h2").first
     title = (
         title_element.inner_text(timeout=3000).strip()
         if title_element.count()
@@ -178,10 +178,11 @@ def extract_search_card(card):
         review_text = review_element.first.inner_text(timeout=3000)
         review_digits = re.sub(r"[^0-9.,]", "", review_text).strip()
         if review_digits:
-            if "," in review_digits:
-                review_digits = review_digits.replace(",", "")
+            review_digits = review_digits.replace(",", "")
             try:
-                reviews = int(float(review_digits) * (1000 if "k" in review_text.lower() else 1))
+                reviews = int(float(review_digits))
+                if "k" in review_text.lower():
+                    reviews *= 1000
             except ValueError:
                 reviews = 0
 
