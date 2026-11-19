@@ -10,6 +10,7 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 
 WATCHLIST_FILE = Path("watchlist.json")
+SEARCHES_FILE = Path("searches.json")
 HISTORY_FILE = Path("history.json")
 
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
@@ -129,6 +130,156 @@ def extract_coupon_text(page):
     return unique[:5]
 
 
+def parse_rupee_value(text):
+    digits = re.sub(r"[^\d]", "", text or "")
+    return int(digits) if digits else None
+
+
+def extract_search_card(card):
+    asin = card.get_attribute("data-asin")
+    if not asin:
+        return None
+
+    whole_card_text = card.inner_text(timeout=5000)
+    if re.search(r"\bsponsored\b", whole_card_text, re.I):
+        return None
+
+    title_element = card.locator("h2")
+    title = (
+        title_element.inner_text(timeout=3000).strip()
+        if title_element.count()
+        else asin
+    )
+
+    selling_elements = card.locator(
+        "span.a-price:not(.a-text-price) span.a-offscreen"
+    )
+    price = None
+    if selling_elements.count():
+        price = parse_rupee_value(
+            selling_elements.first.text_content(timeout=3000)
+        )
+
+    if price is None:
+        whole_price = card.locator("span.a-price-whole")
+        if whole_price.count():
+            price = parse_rupee_value(
+                whole_price.first.text_content(timeout=3000)
+            )
+
+    mrp_element = card.locator("span.a-price.a-text-price span.a-offscreen")
+    mrp = None
+    if mrp_element.count():
+        mrp = parse_rupee_value(mrp_element.first.text_content(timeout=3000))
+
+    review_element = card.locator("span.a-size-base.s-underline-text")
+    reviews = 0
+    if review_element.count():
+        review_text = review_element.first.inner_text(timeout=3000)
+        review_digits = re.sub(r"[^0-9.,]", "", review_text).strip()
+        if review_digits:
+            if "," in review_digits:
+                review_digits = review_digits.replace(",", "")
+            try:
+                reviews = int(float(review_digits) * (1000 if "k" in review_text.lower() else 1))
+            except ValueError:
+                reviews = 0
+
+    return {
+        "asin": asin.upper(),
+        "title": title,
+        "price": price,
+        "mrp": mrp,
+        "reviews": reviews,
+    }
+
+
+def scan_search(page, search, history):
+    name = str(search.get("name", "Unknown category"))
+    url = str(search.get("url", "")).strip()
+
+    try:
+        min_discount = float(search["min_discount_percent"])
+        max_price = int(search["max_price"])
+        min_reviews = int(search["min_reviews"])
+    except (KeyError, TypeError, ValueError):
+        print(f"Skipping invalid search category: {name}", file=sys.stderr)
+        return
+
+    if not url:
+        print(f"Skipping search category without a URL: {name}", file=sys.stderr)
+        return
+
+    print(f"Scanning: {name}")
+
+    try:
+        response = page.goto(url, wait_until="domcontentloaded", timeout=60000)
+        if response is not None and response.status >= 400:
+            print(
+                f"{name}: Amazon returned HTTP {response.status}",
+                file=sys.stderr,
+            )
+            return
+        page.wait_for_timeout(3000)
+
+        cards = page.locator("div[data-component-type='s-search-result']")
+        for index in range(cards.count()):
+            card = cards.nth(index)
+            try:
+                product = extract_search_card(card)
+                if product is None:
+                    continue
+
+                asin = product["asin"]
+                price = product["price"]
+                mrp = product["mrp"]
+                reviews = product["reviews"]
+
+                if price is None or mrp is None or mrp <= 0:
+                    continue
+
+                discount = ((mrp - price) / mrp) * 100
+                if (
+                    discount < min_discount
+                    or price > max_price
+                    or reviews < min_reviews
+                ):
+                    continue
+
+                previous = history.get(asin)
+                if isinstance(previous, (int, float)):
+                    if previous <= price:
+                        continue
+
+                product_url = f"https://amazon.in/dp/{asin}"
+                message = (
+                    f"<b>Amazon deal error / price drop</b>\n"
+                    f"<b>{html.escape(product['title'])}</b>\n"
+                    f"Category: {html.escape(name)}\n"
+                    f"ASIN: <code>{html.escape(asin)}</code>\n"
+                    f"Price: <b>₹{price:,}</b>\n"
+                    f"MRP: ₹{mrp:,}\n"
+                    f"Discount: <b>{discount:.1f}% off</b>\n"
+                    f"Reviews: {reviews:,}\n\n"
+                    f'<a href="{html.escape(product_url, quote=True)}">'
+                    "View on Amazon.in</a>"
+                )
+
+                send_telegram(message)
+                history[asin] = price
+                print(
+                    f"{asin}: alert sent at ₹{price:,} "
+                    f"({discount:.1f}% off, {reviews} reviews)"
+                )
+            except Exception as error:
+                print(
+                    f"Could not process a result in {name}: {error}",
+                    file=sys.stderr,
+                )
+    except Exception as error:
+        print(f"Could not scan {name}: {error}", file=sys.stderr)
+
+
 def send_telegram(message):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         raise RuntimeError(
@@ -150,19 +301,19 @@ def send_telegram(message):
 
 def main():
     watchlist = load_json(WATCHLIST_FILE, [])
+    searches = load_json(SEARCHES_FILE, [])
     history = load_json(HISTORY_FILE, {})
 
     if not isinstance(watchlist, list):
         print("watchlist.json must contain a JSON array", file=sys.stderr)
         sys.exit(1)
 
+    if not isinstance(searches, list):
+        print("searches.json must contain a JSON array", file=sys.stderr)
+        sys.exit(1)
+
     if not isinstance(history, dict):
         history = {}
-
-    if not watchlist:
-        print("Watchlist is empty")
-        save_history(history)
-        return
 
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(
@@ -186,13 +337,17 @@ def main():
             # Load Amazon first so the browser has an established session and cookies.
             try:
                 page.goto(
-                    "https://www.amazon.in/",
+                    "https://amazon.in",
                     wait_until="domcontentloaded",
                     timeout=60000,
                 )
                 page.wait_for_timeout(3000)
             except Exception as error:
                 print(f"Could not load Amazon homepage: {error}", file=sys.stderr)
+
+            for search in searches:
+                if isinstance(search, dict):
+                    scan_search(page, search, history)
 
             for item in watchlist:
                 asin = str(item.get("asin", "")).strip().upper()
