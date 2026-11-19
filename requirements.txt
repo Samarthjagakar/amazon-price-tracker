@@ -1,2 +1,2 @@
-curl_cffi
-beautifulsoup4
+playwright==1.55.0
+requests==2.32.5
