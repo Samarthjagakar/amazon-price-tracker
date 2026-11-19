@@ -1,0 +1,36 @@
+name: Amazon Price Tracker
+
+on:
+  schedule:
+    - cron: "*/20 * * * *" # Runs automatically every 20 minutes
+  workflow_dispatch: # Lets you run it manually anytime
+
+permissions:
+  contents: write # Allows saving history.json to prevent duplicate alerts
+
+jobs:
+  check-prices:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tracker
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python tracker.py
+
+      - name: Save alert history
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add history.json || true
+          git commit -m "Update alert history" || exit 0
+          git push
