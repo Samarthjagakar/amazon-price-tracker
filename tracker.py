@@ -34,20 +34,57 @@ def save_history(history):
 
 
 def extract_rupee_price(page):
-    try:
-        price_elements = page.locator("span.a-price-whole")
-        if price_elements.count() == 0:
-            return None
+    price_selectors = [
+        "span.a-price-whole",
+        "span.a-price .a-offscreen",
+        ".apexPriceToPay",
+        "#corePrice_feature_div .a-offscreen",
+        "#priceblock_ourprice",
+        "#priceblock_dealprice",
+        "#priceblock_saleprice",
+    ]
 
-        for index in range(price_elements.count()):
-            text = price_elements.nth(index).inner_text(timeout=3000).strip()
-            digits = re.sub(r"[^\d]", "", text)
-            if digits:
-                return int(digits)
-    except PlaywrightTimeoutError:
-        return None
+    for selector in price_selectors:
+        try:
+            elements = page.locator(selector)
+            for index in range(elements.count()):
+                text = elements.nth(index).inner_text(timeout=3000).strip()
+                digits = re.sub(r"[^\d]", "", text)
+                if digits:
+                    return int(digits)
+        except PlaywrightTimeoutError:
+            continue
+        except Exception as error:
+            print(f"Price extraction failed for {selector}: {error}", file=sys.stderr)
+
+    # Amazon also exposes structured product metadata on some page variants.
+    try:
+        scripts = page.locator('script[type="application/ld+json"]')
+        for index in range(scripts.count()):
+            raw = scripts.nth(index).text_content(timeout=3000)
+            if not raw:
+                continue
+            try:
+                data = json.loads(raw)
+            except json.JSONDecodeError:
+                continue
+
+            records = data if isinstance(data, list) else [data]
+            for record in records:
+                if not isinstance(record, dict):
+                    continue
+                offers = record.get("offers")
+                if isinstance(offers, list):
+                    candidates = offers
+                else:
+                    candidates = [offers] if isinstance(offers, dict) else []
+                for offer in candidates:
+                    for key in ("price", "lowPrice", "highPrice"):
+                        digits = re.sub(r"[^\d]", "", str(offer.get(key, "")))
+                        if digits:
+                            return int(digits)
     except Exception as error:
-        print(f"Price extraction failed: {error}", file=sys.stderr)
+        print(f"Structured price extraction failed: {error}", file=sys.stderr)
 
     return None
 
