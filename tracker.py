@@ -3,29 +3,17 @@ import re
 import json
 import time
 import random
-import requests
+from curl_cffi import requests
 from bs4 import BeautifulSoup
 
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 HISTORY_FILE = "history.json"
 
-HEADERS_LIST = [
-    {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-        "Accept-Language": "en-IN,en;q=0.9",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    },
-    {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15",
-        "Accept-Language": "en-IN,en;q=0.9",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    },
-]
-
 def send_telegram_alert(message):
     url = f"https://telegram.org{BOT_TOKEN}/sendMessage"
-    requests.post(url, data={"chat_id": CHAT_ID, "text": message})
+    res = requests.post(url, data={"chat_id": CHAT_ID, "text": message})
+    print("Telegram status:", res.status_code)
 
 def load_json(filename, default):
     if os.path.exists(filename):
@@ -39,21 +27,32 @@ def save_json(filename, data):
 
 def check_product(url):
     try:
-        response = requests.get(url, headers=random.choice(HEADERS_LIST), timeout=15)
-        if response.status_code != 200 or "captcha" in response.text.lower():
-            print(f"Blocked or unavailable ({response.status_code}): {url}")
+        # Impersonate real Chrome browser to bypass Amazon bot detection
+        response = requests.get(
+            url,
+            impersonate="chrome124",
+            headers={"Accept-Language": "en-IN,en;q=0.9"},
+            timeout=20,
+        )
+        if response.status_code != 200 or "Type the characters you see in this image" in response.text:
+            print(f"Blocked or CAPTCHA ({response.status_code}): {url}")
             return None, None
 
         soup = BeautifulSoup(response.text, "html.parser")
-        
-        # Extract main price
-        price_el = soup.select_one("span.a-price-whole")
+
+        # Check multiple Amazon price selectors
+        price_el = (
+            soup.select_one("span.a-price-whole")
+            or soup.select_one("#corePriceDisplay_desktop_feature_div .a-price-whole")
+            or soup.select_one("#corePrice_feature_div .a-price-whole")
+        )
         if not price_el:
+            print(f"Price element not found on page (item may be out of stock): {url}")
             return None, None
+
         clean_price = re.sub(r"[^\d]", "", price_el.get_text())
         price = int(clean_price) if clean_price else None
 
-        # Check for extra clip coupon text
         coupon_el = soup.select_one("#vpcButton, .promoPriceBlockMessage")
         coupon_text = coupon_el.get_text(strip=True) if coupon_el else None
 
@@ -76,7 +75,6 @@ def main():
 
         if price and price <= target:
             last_alerted_price = history.get(url)
-            # Alert only if we haven't alerted this exact price (or lower) yet
             if last_alerted_price is None or price < last_alerted_price:
                 coupon_note = f"\n🎟️ Extra Offer: {coupon}" if coupon else ""
                 msg = (
@@ -90,7 +88,6 @@ def main():
                 send_telegram_alert(msg)
                 history[url] = price
         elif price and price > target:
-            # Reset history if price goes back above target so future drops alert again
             history.pop(url, None)
 
         time.sleep(random.uniform(5, 10))
