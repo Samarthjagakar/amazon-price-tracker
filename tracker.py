@@ -287,6 +287,7 @@ def scan_search(page, search, history):
         min_discount = float(search["min_discount_percent"])
         max_price = int(search["max_price"])
         min_reviews = int(search["min_reviews"])
+        min_price = int(search.get("min_price", 99))
     except (KeyError, TypeError, ValueError):
         print(f"Skipping invalid search category: {name}", file=sys.stderr)
         return
@@ -346,11 +347,18 @@ def scan_search(page, search, history):
                         mrp = product["mrp"]
                         reviews = product["reviews"]
 
-                        if price is None or mrp is None or mrp <= 0:
+                        if (
+                            price is None
+                            or price < min_price
+                            or mrp is None
+                            or mrp <= 0
+                        ):
                             continue
 
                         coupon_text, coupon_discount = extract_card_coupon(card, price)
-                        net_price = max(1, price - coupon_discount)
+                        net_price = max(0, price - coupon_discount)
+                        if net_price < 50:
+                            continue
                         discount = ((mrp - net_price) / mrp) * 100
                         if (
                             discount < min_discount

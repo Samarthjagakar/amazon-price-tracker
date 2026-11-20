@@ -5,6 +5,7 @@
     "min_discount_percent": 75,
     "max_price": 25000,
     "min_reviews": 15,
+    "min_price": 99,
     "pages": 3
   },
   {
@@ -13,6 +14,7 @@
     "min_discount_percent": 75,
     "max_price": 25000,
     "min_reviews": 15,
+    "min_price": 99,
     "pages": 3
   },
   {
@@ -21,6 +23,7 @@
     "min_discount_percent": 75,
     "max_price": 25000,
     "min_reviews": 15,
+    "min_price": 99,
     "pages": 3
   },
   {
@@ -29,6 +32,7 @@
     "min_discount_percent": 80,
     "max_price": 25000,
     "min_reviews": 15,
+    "min_price": 99,
     "pages": 3
   },
   {
@@ -36,7 +40,8 @@
     "url": "https://www.amazon.in/s?rh=n%3A976419031%2Cp_36%3A100000-2500000%2Cp_n_pct-off-with-tax%3A2665401031&s=date-desc-rank",
     "min_discount_percent": 80,
     "max_price": 25000,
-    "min_reviews": 0,
+    "min_reviews": 5,
+    "min_price": 99,
     "pages": 2
   },
   {
@@ -44,7 +49,8 @@
     "url": "https://www.amazon.in/s?rh=n%3A976392031%2Cp_36%3A100000-2500000%2Cp_n_pct-off-with-tax%3A2665401031&s=date-desc-rank",
     "min_discount_percent": 80,
     "max_price": 25000,
-    "min_reviews": 0,
+    "min_reviews": 5,
+    "min_price": 99,
     "pages": 2
   },
   {
@@ -53,6 +59,7 @@
     "min_discount_percent": 70,
     "max_price": 25000,
     "min_reviews": 10,
+    "min_price": 99,
     "pages": 3
   },
   {
@@ -61,6 +68,7 @@
     "min_discount_percent": 70,
     "max_price": 25000,
     "min_reviews": 10,
+    "min_price": 99,
     "pages": 3
   }
 ]
