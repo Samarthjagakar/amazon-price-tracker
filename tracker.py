@@ -8,9 +8,24 @@ import time
 from pathlib import Path
 
 import requests
-from playwright_stealth import Stealth
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
+
+try:
+    from playwright_stealth import stealth_sync
+except ImportError:
+    try:
+        from playwright_stealth import Stealth
+    except ImportError as error:
+        raise ImportError(
+            "playwright-stealth must provide stealth_sync or Stealth"
+        ) from error
+
+    def apply_stealth(page):
+        Stealth().apply_stealth_sync(page)
+else:
+    def apply_stealth(page):
+        stealth_sync(page)
 
 WATCHLIST_FILE = Path("watchlist.json")
 SEARCHES_FILE = Path("searches.json")
@@ -373,7 +388,7 @@ def main():
             viewport={"width": 1280, "height": 900},
         )
         page = context.new_page()
-        Stealth().apply_stealth_sync(page)
+        apply_stealth(page)
 
         def block_heavy_resources(route):
             if route.request.resource_type in BLOCKED_RESOURCE_TYPES:
