@@ -1,58 +1,66 @@
 [
   {
-    "name": "Headphones & Earbuds",
-    "url": "https://www.amazon.in/s?k=headphones+earbuds&i=electronics&rh=p_n_pct-off-with-tax%3A2665401031",
+    "name": "Electronics",
+    "url": "https://www.amazon.in/s?rh=n%3A976419031%2Cp_n_pct-off-with-tax%3A2665401031",
     "min_discount_percent": 80,
-    "max_price": 15000,
-    "min_reviews": 15
+    "max_price": 25000,
+    "min_reviews": 10,
+    "pages": 5
   },
   {
-    "name": "Smartwatches & Fitness Bands",
-    "url": "https://www.amazon.in/s?k=smartwatch+fitness+band&i=electronics&rh=p_n_pct-off-with-tax%3A2665401031",
+    "name": "Computers & Accessories",
+    "url": "https://www.amazon.in/s?rh=n%3A976392031%2Cp_n_pct-off-with-tax%3A2665401031",
+    "min_discount_percent": 78,
+    "max_price": 25000,
+    "min_reviews": 10,
+    "pages": 5
+  },
+  {
+    "name": "Home & Kitchen",
+    "url": "https://www.amazon.in/s?rh=n%3A976442031%2Cp_n_pct-off-with-tax%3A2665401031",
+    "min_discount_percent": 80,
+    "max_price": 15000,
+    "min_reviews": 10,
+    "pages": 5
+  },
+  {
+    "name": "Shoes & Handbags",
+    "url": "https://www.amazon.in/s?rh=n%3A1983396031%2Cp_n_pct-off-with-tax%3A2665401031",
+    "min_discount_percent": 82,
+    "max_price": 8000,
+    "min_reviews": 10,
+    "pages": 5
+  },
+  {
+    "name": "Watches",
+    "url": "https://www.amazon.in/s?rh=n%3A1350387031%2Cp_n_pct-off-with-tax%3A2665401031",
     "min_discount_percent": 82,
     "max_price": 10000,
-    "min_reviews": 15
+    "min_reviews": 10,
+    "pages": 5
   },
   {
-    "name": "SSDs, Pendrives & Hard Drives",
-    "url": "https://www.amazon.in/s?k=ssd+pendrive+hard+drive&i=computers&rh=p_n_pct-off-with-tax%3A2665401031",
-    "min_discount_percent": 75,
-    "max_price": 12000,
-    "min_reviews": 15
-  },
-  {
-    "name": "Computer Mice, Keyboards & Monitors",
-    "url": "https://www.amazon.in/s?k=computer+mouse+keyboard+monitor&i=computers&rh=p_n_pct-off-with-tax%3A2665401031",
+    "name": "Sports & Fitness",
+    "url": "https://www.amazon.in/s?rh=n%3A1984443031%2Cp_n_pct-off-with-tax%3A2665401031",
     "min_discount_percent": 80,
     "max_price": 10000,
-    "min_reviews": 10
+    "min_reviews": 10,
+    "pages": 5
   },
   {
-    "name": "Kitchen & Home Appliances",
-    "url": "https://www.amazon.in/s?k=kitchen+home+appliances&i=kitchen&rh=p_n_pct-off-with-tax%3A2665401031",
-    "min_discount_percent": 78,
-    "max_price": 15000,
-    "min_reviews": 15
-  },
-  {
-    "name": "Branded Running & Casual Shoes",
-    "url": "https://www.amazon.in/s?k=branded+running+casual+shoes&i=shoes&rh=p_n_pct-off-with-tax%3A2665401031",
+    "name": "Beauty & Grooming",
+    "url": "https://www.amazon.in/s?rh=n%3A1355016031%2Cp_n_pct-off-with-tax%3A2665401031",
     "min_discount_percent": 80,
-    "max_price": 6000,
-    "min_reviews": 15
-  },
-  {
-    "name": "Power Banks, GaN Chargers & Cables",
-    "url": "https://www.amazon.in/s?k=power+bank+gan+charger+cable&i=electronics&rh=p_n_pct-off-with-tax%3A2665401031",
-    "min_discount_percent": 80,
-    "max_price": 4000,
-    "min_reviews": 15
-  },
-  {
-    "name": "Trimmers, Grooming & Hair Dryers",
-    "url": "https://www.amazon.in/s?k=trimmer+grooming+hair+dryer&i=beauty&rh=p_n_pct-off-with-tax%3A2665401031",
-    "min_discount_percent": 78,
     "max_price": 5000,
-    "min_reviews": 20
+    "min_reviews": 15,
+    "pages": 5
+  },
+  {
+    "name": "Luggage & Backpacks",
+    "url": "https://www.amazon.in/s?rh=n%3A2454169031%2Cp_n_pct-off-with-tax%3A2665401031",
+    "min_discount_percent": 82,
+    "max_price": 6000,
+    "min_reviews": 10,
+    "pages": 5
   }
 ]

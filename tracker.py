@@ -3,9 +3,12 @@ import json
 import os
 import re
 import sys
+import random
+import time
 from pathlib import Path
 
 import requests
+from playwright_stealth import Stealth
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
 
@@ -15,6 +18,8 @@ HISTORY_FILE = Path("history.json")
 
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
+SOCKS5_PROXY = "socks5://127.0.0.1:40000"
+BLOCKED_RESOURCE_TYPES = {"image", "media", "font", "stylesheet"}
 
 
 def load_json(path, default):
@@ -214,71 +219,105 @@ def scan_search(page, search, history):
     print(f"Scanning: {name}")
 
     try:
-        response = page.goto(url, wait_until="domcontentloaded", timeout=60000)
-        if response is not None and response.status >= 400:
-            print(
-                f"{name}: Amazon returned HTTP {response.status}",
-                file=sys.stderr,
+        page_count = int(search.get("pages", 5))
+    except (TypeError, ValueError):
+        page_count = 5
+    page_count = max(1, page_count)
+
+    separator = "&" if "?" in url else "?"
+
+    for page_number in range(1, page_count + 1):
+        page_url = f"{url}{separator}page={page_number}"
+        try:
+            response = page.goto(
+                page_url,
+                wait_until="domcontentloaded",
+                timeout=60000,
             )
-            return
-        page.wait_for_timeout(3000)
 
-        cards = page.locator("div[data-component-type='s-search-result']")
-        for index in range(cards.count()):
-            card = cards.nth(index)
-            try:
-                product = extract_search_card(card)
-                if product is None:
-                    continue
-
-                asin = product["asin"]
-                price = product["price"]
-                mrp = product["mrp"]
-                reviews = product["reviews"]
-
-                if price is None or mrp is None or mrp <= 0:
-                    continue
-
-                discount = ((mrp - price) / mrp) * 100
-                if (
-                    discount < min_discount
-                    or price > max_price
-                    or reviews < min_reviews
-                ):
-                    continue
-
-                previous = history.get(asin)
-                if isinstance(previous, (int, float)):
-                    if previous <= price:
-                        continue
-
-                product_url = f"https://amazon.in/dp/{asin}"
-                message = (
-                    f"<b>Amazon deal error / price drop</b>\n"
-                    f"<b>{html.escape(product['title'])}</b>\n"
-                    f"Category: {html.escape(name)}\n"
-                    f"ASIN: <code>{html.escape(asin)}</code>\n"
-                    f"Price: <b>₹{price:,}</b>\n"
-                    f"MRP: ₹{mrp:,}\n"
-                    f"Discount: <b>{discount:.1f}% off</b>\n"
-                    f"Reviews: {reviews:,}\n\n"
-                    f'<a href="{html.escape(product_url, quote=True)}">'
-                    "View on Amazon.in</a>"
-                )
-
-                send_telegram(message)
-                history[asin] = price
+            if response is not None and response.status == 503:
                 print(
-                    f"{asin}: alert sent at ₹{price:,} "
-                    f"({discount:.1f}% off, {reviews} reviews)"
-                )
-            except Exception as error:
-                print(
-                    f"Could not process a result in {name}: {error}",
+                    f"{name} page {page_number}: HTTP 503; backing off for 60 seconds",
                     file=sys.stderr,
                 )
-    except Exception as error:
-        print(f"Could not scan {name}: {error}", file=sys.stderr)
+                time.sleep(60)
+                response = page.goto(
+                    page_url,
+                    wait_until="domcontentloaded",
+                    timeout=60000,
+                )
+
+            if response is not None and response.status >= 400:
+                print(
+                    f"{name} page {page_number}: Amazon returned HTTP "
+                    f"{response.status}",
+                    file=sys.stderr,
+                )
+            else:
+                cards = page.locator("div[data-component-type='s-search-result']")
+                for index in range(cards.count()):
+                    card = cards.nth(index)
+                    try:
+                        product = extract_search_card(card)
+                        if product is None:
+                            continue
+
+                        asin = product["asin"]
+                        price = product["price"]
+                        mrp = product["mrp"]
+                        reviews = product["reviews"]
+
+                        if price is None or mrp is None or mrp <= 0:
+                            continue
+
+                        discount = ((mrp - price) / mrp) * 100
+                        if (
+                            discount < min_discount
+                            or price > max_price
+                            or reviews < min_reviews
+                        ):
+                            continue
+
+                        previous = history.get(asin)
+                        if isinstance(previous, (int, float)):
+                            if previous <= price:
+                                continue
+
+                        product_url = f"https://amazon.in/dp/{asin}"
+                        message = (
+                            f"<b>Amazon deal error / price drop</b>\n"
+                            f"<b>{html.escape(product['title'])}</b>\n"
+                            f"Category: {html.escape(name)}\n"
+                            f"ASIN: <code>{html.escape(asin)}</code>\n"
+                            f"Price: <b>₹{price:,}</b>\n"
+                            f"MRP: ₹{mrp:,}\n"
+                            f"Discount: <b>{discount:.1f}% off</b>\n"
+                            f"Reviews: {reviews:,}\n\n"
+                            f'<a href="{html.escape(product_url, quote=True)}">'
+                            "View on Amazon.in</a>"
+                        )
+
+                        send_telegram(message)
+                        history[asin] = price
+                        print(
+                            f"{asin}: alert sent at ₹{price:,} "
+                            f"({discount:.1f}% off, {reviews} reviews)"
+                        )
+                    except Exception as error:
+                        print(
+                            f"Could not process a result in {name}: {error}",
+                            file=sys.stderr,
+                        )
+
+            if page_number < page_count:
+                page.wait_for_timeout(random.uniform(3, 6) * 1000)
+        except Exception as error:
+            print(
+                f"Could not scan {name} page {page_number}: {error}",
+                file=sys.stderr,
+            )
+            if page_number < page_count:
+                page.wait_for_timeout(random.uniform(3, 6) * 1000)
 
 
 def send_telegram(message):
@@ -320,6 +359,7 @@ def main():
         browser = playwright.chromium.launch(
             headless=True,
             args=["--disable-blink-features=AutomationControlled"],
+            proxy={"server": SOCKS5_PROXY},
         )
 
         context = browser.new_context(
@@ -333,6 +373,15 @@ def main():
             viewport={"width": 1280, "height": 900},
         )
         page = context.new_page()
+        Stealth().apply_stealth_sync(page)
+
+        def block_heavy_resources(route):
+            if route.request.resource_type in BLOCKED_RESOURCE_TYPES:
+                route.abort()
+            else:
+                route.continue_()
+
+        page.route("**/*", block_heavy_resources)
 
         try:
             # Load Amazon first so the browser has an established session and cookies.
@@ -377,6 +426,18 @@ def main():
                         timeout=60000,
                     )
 
+                    if response is not None and response.status == 503:
+                        print(
+                            f"{asin}: HTTP 503; backing off for 60 seconds",
+                            file=sys.stderr,
+                        )
+                        time.sleep(60)
+                        response = page.goto(
+                            product_url,
+                            wait_until="domcontentloaded",
+                            timeout=60000,
+                        )
+
                     if response is not None and response.status >= 400:
                         print(
                             f"Amazon returned HTTP {response.status} for {asin}",
@@ -384,7 +445,7 @@ def main():
                         )
                         continue
 
-                    page.wait_for_timeout(2500)
+                    page.wait_for_timeout(random.uniform(3, 6) * 1000)
                     price = extract_rupee_price(page)
 
                     if price is None:
