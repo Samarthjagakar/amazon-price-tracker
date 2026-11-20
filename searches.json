@@ -1,66 +1,66 @@
 [
   {
     "name": "Electronics",
-    "url": "https://www.amazon.in/s?rh=n%3A976419031%2Cp_n_pct-off-with-tax%3A2665401031",
-    "min_discount_percent": 80,
+    "url": "https://www.amazon.in/s?rh=n%3A976419031%2Cp_36%3A100000-2500000%2Cp_n_pct-off-with-tax%3A2665401031%2Cp_72%3A1318476031&s=pct-off-desc-rank",
+    "min_discount_percent": 75,
     "max_price": 25000,
-    "min_reviews": 10,
-    "pages": 5
+    "min_reviews": 15,
+    "pages": 3
   },
   {
     "name": "Computers & Accessories",
-    "url": "https://www.amazon.in/s?rh=n%3A976392031%2Cp_n_pct-off-with-tax%3A2665401031",
-    "min_discount_percent": 78,
+    "url": "https://www.amazon.in/s?rh=n%3A976392031%2Cp_36%3A100000-2500000%2Cp_n_pct-off-with-tax%3A2665401031%2Cp_72%3A1318476031&s=pct-off-desc-rank",
+    "min_discount_percent": 75,
     "max_price": 25000,
-    "min_reviews": 10,
-    "pages": 5
+    "min_reviews": 15,
+    "pages": 3
   },
   {
     "name": "Home & Kitchen",
-    "url": "https://www.amazon.in/s?rh=n%3A976442031%2Cp_n_pct-off-with-tax%3A2665401031",
-    "min_discount_percent": 80,
-    "max_price": 15000,
-    "min_reviews": 10,
-    "pages": 5
-  },
-  {
-    "name": "Shoes & Handbags",
-    "url": "https://www.amazon.in/s?rh=n%3A1983396031%2Cp_n_pct-off-with-tax%3A2665401031",
-    "min_discount_percent": 82,
-    "max_price": 8000,
-    "min_reviews": 10,
-    "pages": 5
-  },
-  {
-    "name": "Watches",
-    "url": "https://www.amazon.in/s?rh=n%3A1350387031%2Cp_n_pct-off-with-tax%3A2665401031",
-    "min_discount_percent": 82,
-    "max_price": 10000,
-    "min_reviews": 10,
-    "pages": 5
-  },
-  {
-    "name": "Sports & Fitness",
-    "url": "https://www.amazon.in/s?rh=n%3A1984443031%2Cp_n_pct-off-with-tax%3A2665401031",
-    "min_discount_percent": 80,
-    "max_price": 10000,
-    "min_reviews": 10,
-    "pages": 5
-  },
-  {
-    "name": "Beauty & Grooming",
-    "url": "https://www.amazon.in/s?rh=n%3A1355016031%2Cp_n_pct-off-with-tax%3A2665401031",
-    "min_discount_percent": 80,
-    "max_price": 5000,
+    "url": "https://www.amazon.in/s?rh=n%3A976442031%2Cp_36%3A100000-2500000%2Cp_n_pct-off-with-tax%3A2665401031%2Cp_72%3A1318476031&s=pct-off-desc-rank",
+    "min_discount_percent": 75,
+    "max_price": 25000,
     "min_reviews": 15,
-    "pages": 5
+    "pages": 3
   },
   {
-    "name": "Luggage & Backpacks",
-    "url": "https://www.amazon.in/s?rh=n%3A2454169031%2Cp_n_pct-off-with-tax%3A2665401031",
-    "min_discount_percent": 82,
-    "max_price": 6000,
+    "name": "Shoes, Watches & Luggage",
+    "url": "https://www.amazon.in/s?rh=n%3A1983396031%2Cp_36%3A100000-2500000%2Cp_n_pct-off-with-tax%3A2665401031%2Cp_72%3A1318476031&s=pct-off-desc-rank",
+    "min_discount_percent": 80,
+    "max_price": 25000,
+    "min_reviews": 15,
+    "pages": 3
+  },
+  {
+    "name": "Electronics Newest Drops",
+    "url": "https://www.amazon.in/s?rh=n%3A976419031%2Cp_36%3A100000-2500000%2Cp_n_pct-off-with-tax%3A2665401031&s=date-desc-rank",
+    "min_discount_percent": 80,
+    "max_price": 25000,
+    "min_reviews": 0,
+    "pages": 2
+  },
+  {
+    "name": "Computers & Appliances Newest Drops",
+    "url": "https://www.amazon.in/s?rh=n%3A976392031%2Cp_36%3A100000-2500000%2Cp_n_pct-off-with-tax%3A2665401031&s=date-desc-rank",
+    "min_discount_percent": 80,
+    "max_price": 25000,
+    "min_reviews": 0,
+    "pages": 2
+  },
+  {
+    "name": "Premium Electronics Brand Loot",
+    "url": "https://www.amazon.in/s?k=Sony+OR+Bose+OR+Sennheiser+OR+JBL+OR+Samsung+OR+Apple&rh=p_36%3A100000-2500000%2Cp_n_pct-off-with-tax%3A2665401031%2Cp_72%3A1318476031&s=pct-off-desc-rank",
+    "min_discount_percent": 70,
+    "max_price": 25000,
     "min_reviews": 10,
-    "pages": 5
+    "pages": 3
+  },
+  {
+    "name": "Computer & Lifestyle Brand Loot",
+    "url": "https://www.amazon.in/s?k=Logitech+OR+Crucial+OR+WD+OR+Philips&rh=p_36%3A100000-2500000%2Cp_n_pct-off-with-tax%3A2665401031%2Cp_72%3A1318476031&s=pct-off-desc-rank",
+    "min_discount_percent": 70,
+    "max_price": 25000,
+    "min_reviews": 10,
+    "pages": 3
   }
 ]

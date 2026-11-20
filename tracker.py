@@ -155,6 +155,70 @@ def parse_rupee_value(text):
     return int(digits) if digits else None
 
 
+def extract_card_coupon(card, selling_price):
+    candidates = []
+
+    try:
+        coupon_elements = card.locator(
+            "span.s-coupon-unclipped, "
+            "[class*='coupon' i], "
+            "[id*='coupon' i]"
+        )
+        for index in range(coupon_elements.count()):
+            text = coupon_elements.nth(index).inner_text(timeout=2000).strip()
+            if text:
+                candidates.append(re.sub(r"\s+", " ", text))
+    except Exception:
+        pass
+
+    try:
+        card_text = card.inner_text(timeout=5000)
+        for line in card_text.splitlines():
+            line = re.sub(r"\s+", " ", line).strip()
+            if re.search(r"(?:save|coupon|₹)", line, re.I):
+                candidates.append(line)
+    except Exception:
+        pass
+
+    best_discount = 0
+    best_text = None
+
+    for text in candidates:
+        normalized = re.sub(r"\s+", " ", text).strip()
+
+        rupee_matches = re.findall(
+            r"(?:₹|Rs\.?\s*)\s*([0-9][0-9,.]*)",
+            normalized,
+            re.I,
+        )
+        for amount in rupee_matches:
+            rupee_discount = parse_rupee_value(amount)
+            if rupee_discount is not None:
+                best_discount = max(best_discount, rupee_discount)
+                if rupee_discount == best_discount:
+                    best_text = normalized
+
+        percent_matches = re.findall(
+            r"(?:save|extra|off)?[^%\d]*(\d+(?:\.\d+)?)\s*%",
+            normalized,
+            re.I,
+        )
+        for percent_text in percent_matches:
+            try:
+                percent_discount = float(percent_text)
+            except ValueError:
+                continue
+            rupee_discount = int(selling_price * percent_discount / 100)
+            if rupee_discount > best_discount:
+                best_discount = rupee_discount
+                best_text = normalized
+
+    if selling_price is not None and best_discount >= selling_price:
+        best_discount = max(0, selling_price - 1)
+
+    return best_text, best_discount
+
+
 def extract_search_card(card):
     asin = card.get_attribute("data-asin")
     if not asin:
@@ -285,26 +349,37 @@ def scan_search(page, search, history):
                         if price is None or mrp is None or mrp <= 0:
                             continue
 
-                        discount = ((mrp - price) / mrp) * 100
+                        coupon_text, coupon_discount = extract_card_coupon(card, price)
+                        net_price = max(1, price - coupon_discount)
+                        discount = ((mrp - net_price) / mrp) * 100
                         if (
                             discount < min_discount
-                            or price > max_price
+                            or net_price > max_price
                             or reviews < min_reviews
                         ):
                             continue
 
                         previous = history.get(asin)
                         if isinstance(previous, (int, float)):
-                            if previous <= price:
+                            if previous <= net_price:
                                 continue
 
                         product_url = f"https://amazon.in/dp/{asin}"
+                        coupon_line = ""
+                        if coupon_text:
+                            coupon_line = (
+                                "\nCoupon: "
+                                f"<b>{html.escape(coupon_text)}</b>"
+                                f"\nCoupon savings: ₹{coupon_discount:,}"
+                            )
                         message = (
                             f"<b>Amazon deal error / price drop</b>\n"
                             f"<b>{html.escape(product['title'])}</b>\n"
                             f"Category: {html.escape(name)}\n"
                             f"ASIN: <code>{html.escape(asin)}</code>\n"
                             f"Price: <b>₹{price:,}</b>\n"
+                            f"Effective net price: <b>₹{net_price:,}</b>"
+                            f"{coupon_line}\n"
                             f"MRP: ₹{mrp:,}\n"
                             f"Discount: <b>{discount:.1f}% off</b>\n"
                             f"Reviews: {reviews:,}\n\n"
@@ -313,9 +388,9 @@ def scan_search(page, search, history):
                         )
 
                         send_telegram(message)
-                        history[asin] = price
+                        history[asin] = net_price
                         print(
-                            f"{asin}: alert sent at ₹{price:,} "
+                            f"{asin}: alert sent at ₹{net_price:,} "
                             f"({discount:.1f}% off, {reviews} reviews)"
                         )
                     except Exception as error:
